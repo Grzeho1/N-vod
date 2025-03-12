@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Implementační návod</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+        .sidebar {
+            width: 250px;
+            position: fixed;
+            height: 100%;
+            background-color: #f4f4f4;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .sidebar ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .sidebar ul li {
+            margin: 10px 0;
+        }
+        .sidebar a {
+            text-decoration: none;
+            color: #333;
+        }
+        .sidebar a:hover {
+            color: #007BFF;
+        }
+        .content {
+            margin-left: 270px;
+            padding: 20px 30px 20px 40px; 
+            width: calc(100% - 310px);
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        ul {
+            margin-left: 20px;
+        }
+        /* Styl pro rozbalovací menu */
+        .accordion {
+            cursor: pointer;
+            padding: 10px 0;
+        }
+        .accordion-content {
+            display: none;
+            padding-left: 20px;
+        }
+        .accordion.active + .accordion-content {
+            display: block;
+        }
+        /* Styl pro tabulku */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            width: 10%; 
+            height: 40px; 
+            word-wrap: break-word; 
+            overflow-wrap: break-word; 
+            box-sizing: border-box;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        /* Barvy podle obrázku */
+        .core-premium {
+            background-color: #ADD8E6; /* Světle modrá */
+        }
+        .custom-felzen {
+            background-color: #FFD700; /* Zlatá  */
+        }
+        .popis1, .popis2, .popis3, .popis4 {
+            background-color: #FFFFFF; /* Bílá */
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Osnova</h2>
+        <ul>
+            <li class="accordion"><a href="#implementacni-navod">1. Implementační návod</a></li>
+            <ul class="accordion-content">
+                <li><a href="#uvod">1.1 Úvod</a></li>
+                <li class="accordion"><a href="#pristupy">1.2 Přístupy</a></li>
+                <ul class="accordion-content">
+                    <li><a href="#vzdalena-plocha">1.2.1 Vzdálená plocha a VPN</a></li>
+                    <li><a href="#helios-sql">1.2.2 Helios a SQL</a></li>
+                    <li><a href="#admin-prava">1.2.3 Admin práva do Shoptetu</a></li>
+                    <li><a href="#povoleni-komunikace">1.2.4 Povolení komunikace</a></li>
+                </ul>
+                <li class="accordion"><a href="#ovladaci-prvky">1.3 Ovládací prvky</a></li>
+                <ul class="accordion-content">
+                    <li><a href="#strana-helios">1.3.1 Strana Heliosu</a></li>
+                    <li><a href="#strana-sql">1.3.2 Strana SQL</a></li>
+                    <ul class="accordion-content">
+                        <li><a href="#views">1.3.2.1 Views</a></li>
+                        <li><a href="#triggers">1.3.2.2 Triggers</a></li>
+                        <li><a href="#procedures">1.3.2.3 Procedures</a></li>
+                    </ul>
+                </ul>
+                <li class="accordion"><a href="#instalace-aplikace">1.4 Instalace aplikace</a></li>
+                <ul class="accordion-content">
+                    <li><a href="#porty">1.4.1 Porty</a></li>
+                    <li><a href="#test-prod">1.4.2 TEST/PROD</a></li>
+                </ul>
+                <li class="accordion"><a href="#instalace-doplnku">1.5 Instalace doplňku a propojení appky</a></li>
+                <ul class="accordion-content">
+                    <li><a href="#doplněk-shoptet">1.5.1 Doplněk Shoptet</a></li>
+                    <li><a href="#propojeni-appky">1.5.2 Propojení appky</a></li>
+                </ul>
+                <li><a href="#coalshop-tabulka">1.6 Coalshop tabulka a mappingy</a></li>
+                <li><a href="#zprovozneni-localhostu">1.7 Zprovoznění localhostu</a></li>
+                <li><a href="#nastaveni-aplikace">1.8 Nastavení aplikace</a></li>
+            </ul>
+            <li class="accordion"><a href="#coalshop-konektor">2. CoalShop konektor</a></li>
+            <ul class="accordion-content">
+                <li><a href="#uvod2">2.1 Úvod</a></li>
+            </ul>
+            <li class="accordion"><a href="#Rozdělení-a-obsah-konektoru">3. Rozdělení a obsah konektoru</a></li>
+            <ul class="accordion-content">
+                <li><a href="#uvod3">3.1 Úvod</a></li>
+                <li><a href="#tabulka">3.2 Tabulka</a></li>
+            </ul>
+        </ul>
+    </div>
+
+    <div class="content">
+        <h1 id="implementacni-navod">1. Implementační návod</h1>
+        <h2 id="uvod">1.1 Úvod</h2>
+        <p>Tento dokument slouží jako podklad pro konzultanty, kteří implementují napojení na Shoptet CORE i Premium. Implementační návod u obou verzí je shodný.</p>
+
+        <h2 id="pristupy">1.2 Přístupy</h2>
+        <p>Pro začátek implementace je důležité získat od zákazníka přístupy. Tyto přístupy jsou i součástí nabídky. Jedná se o:</p>
+        <h3 id="vzdalena-plocha">1.2.1 Vzdálená plocha a VPN</h3>
+        <ul>
+            <li><em>Zde je potřeba, abychom měli admin práva z důvodu instalace prvků na C</em></li>
+        </ul>
+        <h3 id="helios-sql">1.2.2 Helios a SQL</h3>
+        <ul>
+            <li><em>Databáze, na kterou se budeme napojovat</em></li>
+        </ul>
+        <h3 id="admin-prava">1.2.3 Admin práva do Shoptetu</h3>
+        <h3 id="povoleni-komunikace">1.2.4 Povolení komunikace</h3>
+        <ul>
+            <li>Na serveru zákazníka (jejich veřejná IP:PORT) musí mít povolenou příchozí a odchozí komunikaci s našim Shoptet doplňkem (167.99.217.238:3300)</li>
+        </ul>
+
+        <h2 id="ovladaci-prvky">1.3 Ovládací prvky</h2>
+        <p>Abychom byli schopni zprovoznit náš connector, je potřeba nahrát ovládací prvky. Tyto prvky se nahrávají jak do Heliosu, tak přímo do SQL.</p>
+        <h3 id="strana-helios">1.3.1 Strana Heliosu</h3>
+        <p>Je potřeba, aby se do Heliosu nahrály ovládací prvky. Veškeré ovládací prvky naleznete zde:</p>
+        <p><strong>COALIOS share - Dokumenty\04_Projekty\Shoptet\Návody\vazby</strong></p>
+        <p>Prvky, které se nahrávají, jsou:</p>
+        <ul>
+            <li>Uživatelské sloupce</li>
+            <li>Definované přehledy</li>
+            <li>Definované vazby</li>
+            <li>Vícenásobné vztahy</li>
+            <li>Externí akce</li>
+            <li>Uživatelské tabulky</li>
+        </ul>
+        <p>Je povinností každého konzultanta, pokud dojde k rozšíření prvků (přidání nových sloupců, views) či úpravě nad těmito ovládacími prvky, vygenerovat nový balíček a vložit do složky výše. Díky tomu se zajistí hladký chod implementací.</p>
+
+        <h3 id="strana-sql">1.3.2 Strana SQL</h3>
+        <h4 id="views">1.3.2.1 Views</h4>
+        <p>Většina view se nahraje při importu definovaných přehledů. Část view se ale i přesto nezaloží. Abychom zabránili porovnávání view jedna ku jedné, je vytvořený soubor, který chybějící view založí a existující aktualizuje. Tento soubor naleznete zde, s názvem views:</p>
+        <p><strong>C:\ COALIOS share - Dokumenty\04_Projekty\Shoptet\Návody\SQL</strong></p>
+        <ul>
+            <li><strong>New query</strong></li>
+            <li>Vložit textový soubor</li>
+            <li>Přejmenovat název DB dle té, kam se mají views nahrát</li>
+            <li><strong>Execute</strong></li>
+        </ul>
+
+        <h4 id="triggers">1.3.2.2 Triggers</h4>
+        <p>Dále je do SQL potřeba nahrát triggery. Jedná se o časová razítka, která hlídají data změn. Triggery, které je potřeba založit mají v názvu COAL. Založení triggerů je obdobné, jako založení views (New query -> ctrl+V -> změnit název DB -> execute). Export view se dělá následujícím způsobem:</p>
+        <ul>
+            <li>Najdu tabulku, ke které je navázán trigger a přes plus rozbalím (kopíruju z naší DB Helios003)</li>
+            <li>Stoupni na trigger a zmáčknu pravé tlačítko myši. Tím se nám zkopíruje trigger, jako bychom použili ctrl+C</li>
+        </ul>
+        <p>Seznam tabulek, nad kterými jsou triggery:</p>
+        <ul>
+            <li>TabDosleObjH02</li>
+            <li>TabDosleObjH02_ext</li>
+            <li>TabDTUAlterKK</li>
+            <li>TabKmenZbozi</li>
+            <li>TabNC</li>
+            <li>TabStavSkladu</li>
+        </ul>
+
+        <h4 id="procedures">1.3.2.3 Procedures</h4>
+        <p>Seznam procedur, které je potřeba nahrát:</p>
+        <ul>
+            <li>coalCompanyManage</li>
+            <li>coalCompanyManage_find</li>
+            <li>coalCompanyUpdate</li>
+            <li>coalCompanyAfterImport_1</li>
+            <li>coalOrderImport</li>
+            <li>coalOrderAfterImport_1</li>
+            <li>coalOrderHeadImport_1</li>
+            <li>coalOrderProductImport_1</li>
+        </ul>
+        <p>Další procedury se nahrávají pouze v případě jednotlivých funkcionalit navíc. Popis všech ovládacích prvků bude v kapitole Specifikace ovládacích prvků.</p>
+
+        <h2 id="instalace-aplikace">1.4 Instalace aplikace</h2>
+        <p>Aplikaci connectoru naleznete <strong>C:COALIOS share - Dokumenty\04_Projekty\Shoptet</strong></p>
+        <p>Jedná se o soubor s názvem <strong>CoalShopInstaller-1.2</strong></p>
+        <p>Tento soubor vložte na server zákazníka, ideálně na disk C. Vše instalujte jako správce, aby aplikace nebyla nainstalovaná pod uživatelem. Veškerý instalační postup naleznete přímo v extrahovaném souboru.</p>
+        <p>Součástí instalace je i přeposlání pub Key programátorovi, aby ho zaregistroval. V tomto případě se kontaktuje Matyáš Kollert. Součástí žádosti o registraci musí zpráva obnášet i: název firmy, port, univerzal/CORE/premium, TEST/PTOD</p>
+
+        <h3 id="porty">1.4.1 Porty</h3>
+        <p>Logika portů je nyní nastavena tak, že pokud se jedná o CORE, používáme port 3900. Pokud se jedná o Premium, používáme port 3800. Pokud se jedná o multishopy, zachováva se logika prvních dvou čísel (např. tři shopy na CORE: porty 3901, 3902 a 3903).</p>
+
+        <h3 id="test-prod">1.4.2 TEST/PROD</h3>
+        <p>Ve většině případů v řípadě Shoptet connectoru, ať už CORE či Premium rovnou instalujeme aplikaci naostro. Využívá se tedy PROD. TEST se ve většině případů používá pouze pro universal (TEST napojen na testovací DB? PROD na ostrou DB).</p>
+
+        <h2 id="instalace-doplnku">1.5 Instalace doplňku a propojení appky</h2>
+        <p>Pokud máme ovládací prvky nahrány, nainstalovanou aplikaci, je potřeba ji propojit i se Shoptetem.</p>
+        <h3 id="doplněk-shoptet">1.5.1 Doplněk Shoptet</h3>
+        <p>Je důležité, aby měl zákazník zakoupený doplněk přímo na Shoptetu. Někteří zákazníci si stahují tento doplněk sami, někteří ne, a je potřeba jej stáhnout při implementaci.</p>
+        <p>Doplněk naleznete přímo v adminovi Shoptetu: <strong>Propojení –> Shoptet doplňky</strong>.</p>
+        <p>Zde vyhledáte klíčové slovo Helios, a dle toho, zda se jedná o CORE či Premium, doplněk stáhnete.</p>
+
+        <h3 id="propojeni-appky">1.5.2 Propojení appky</h3>
+        <p>V okamžiku, kdy je doplněk stáhnutý a aplikace nainstalovaná, je potřeba appku propojit. V tomto případě se kontaktuje Ondřej Matyáš, který mimo žádost o propojení musí obdržet informace i o tom, zda se jedná o CORE/Premium, port, název firmy, ID shopu a veřejnou IP zákazníka.</p>
+        <p>ID shopu je vidět o přihlášení do admina v pravém horním rohu.</p>
+
+        <h2 id="coalshop-tabulka">1.6 Coalshop tabulka a mappingy</h2>
+        <p>Posledním krokem k rozjetí aplikace je vyplnění coalshop tabulky a mappingů. Název veškerých tabulek, které se vyplňují, jsou mimo coalshop ještě tyto mappingy:</p>
+        <ul>
+            <li>Coal Shoptet Product Mapping</li>
+            <li>Coalshop – mapování atributů hlavičky objednávky</li>
+            <li>Coalshop – mapování atributů hlavičky objednávky EXT</li>
+            <li>Coalshop – mapování atributů importu org EXT</li>
+            <li>Coalshop – mapování atributů importu org.</li>
+            <li>Coalshop – mapování atributů položek objednávky</li>
+            <li>CoalShop – mapování položek objednávky ext</li>
+        </ul>
+        <p>Pokud zákazník využžívá rozšíření jazykových mutací, je za potřebí vypnit i mapping pro tyto tabulky:</p>
+        <ul>
+            <li>Coalshop – mapování jazykových mutací hodnoty param</li>
+            <li>Coalshop – mapování jazykových mutací kategorií</li>
+            <li>Coalshop – mapování jazykových mutací parametrů</li>
+            <li>Coalshop – mapování jazykových mutací produktů</li>
+        </ul>
+        <p>Tabulky naleznete zde: [odkaz na umístění tabulek]</p>
+        <p>Je za potřebí prvně vyplnit coalshop tabulku a až posléze mappingy. Obojí vyplníme stejným postupem a to tak, že stoupneme na tabulku, kterou chceme vyplnit a klikneme v záložce Přehled na Zobrazit. Klikneme na Nový a začneme vyplňovat dle vzoru v DB Helios003.</p>
+
+        <h2 id="zprovozneni-localhostu">1.7 Zprovoznění localhostu</h2>
+        <p>V tomto okamžiku bychom měli na adrese <strong>localhost:PORT</strong> naleznout námi nastavenou aplikaci. Localhost zadáváme vždy na vzdálené ploše zákazníka.</p>
+        <p>Pokud se stránka nenačítá, zkontaktujeme zkušenějšího konzultanta či vývojáře.</p>
+        <p>V ideálním případě se Vám načte stránka s názvem e-shopu. Přes proklik se dostanete na konfiguraci v rámci propojení.</p>
+
+        <h2 id="nastaveni-aplikace">1.8 Nastavení aplikace</h2>
+        <p>Poslední věc, kterou musíme nastavit, než začneme testovat, jsou sklady pro dostupnost e-shopu, stavy objednávek, úhrady a dopravy pro shop.</p>
+        <p>Sklady zrcadlí organizační strukturu a jednoduchým zakliknutím volíme, do jakých skladů se má aplikace dívat.</p>
+        <p>Stavy objednávek, úhrady a dopravy fungují na stejném principu. V levé části aplikace zrcadlí hodnoty ze Shoptetu, v pravé části přiřazujete protikus z Heliosu. <strong>POZOR</strong>, je potřeba zachovat vazbu 1:1, není možné např. jednu úhradu z Helios napárovat na více úhrad ze Shoptet.</p>
+        <p>Bez propárovaných stavů, úhrad a doprav nelze otestovat zapisování objednávek.</p>
+
+        <h1 id="coalshop-konektor">2. CoalShop konektor</h1>
+        <h2 id="uvod2">2.1 Úvod</h2>
+        <p>[Přenášené pole, celkové fungování, ]</p>
+
+        <h1 id="Rozdělení-a-obsah-konektoru">3. Rozdělení a obsah konektoru</h1>
+        <h2 id="uvod3">3.1 Úvod</h2>
+        <p>[Přenášené pole, celkové fungování, ]</p>
+        <h2 id="tabulka">3.2 Tabulka</h2>
+        <table>
+            <tr>
+                <th class="core-premium">CORE</th>
+                <th class="popis2">Popis</th>
+                <th class="popis2">Dokup v CORE</th>
+                <th class="popis3">Popis2</th>
+                <th class="">--</th>
+                <th class="custom-felzen">PREMIUM</th>
+                <th class="popis4">--</th>
+                <th class="popis4">Popis3</th>
+                <th class="popis4">Dokup v PREMIUM</th>
+                <th class="popis4">Popis4</th>
+            </tr>
+            <tr>
+                <td>Došle objednávky</td>
+                <td>--</td>
+                <td>Expediční příkazy</td>
+                <td>--</td>
+                <td>Popis/Filtrace</td>
+                <td>Jazykové mutace</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+                
+            </tr>
+            <tr>
+                <td>Stavy objednávek</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Varianty</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Externí pole (CODE, číslo zboží, datum změny Hel a Shoptet atd.)</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Info o doplnění</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>URL adresy</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Typ produktu</td>
+                <td>P--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Part number</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>PLU</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Dostupnost</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Přenos skupiny zboží a registračního čísla</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Viditelnost skladové zásoby</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Ceníky základní</td>
+                <td>Sady položek</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Jedna měna</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Zaplaceno z platebních bran</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Mapping</td>
+                <td>--</td>
+                <td></td>
+                <td></td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td>--</td>
+                <td></td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        // JavaScript pro rozbalování/skrývání položek
+        document.querySelectorAll('.accordion').forEach(item => {
+            item.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+    </script>
+</body>
+</html>
